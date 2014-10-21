@@ -1,9 +1,19 @@
-FROM base/devel
+FROM nubs/arch-build
 
-RUN pacman --sync --refresh --noconfirm --noprogressbar --quiet && pacman --sync --refresh --sysupgrade --noconfirm --noprogressbar --quiet && pacman --sync --noconfirm --noprogressbar --quiet git
+# Fix permissions on /home/build because of a bug in the docker hub.
+USER root
+RUN chown build:build /home/build
+WORKDIR /home/build
 
-RUN git clone https://github.com/ggreer/the_silver_searcher.git /ag
+# Build package from PKGBUILD
+USER build
+RUN curl -sS https://aur.archlinux.org/packages/si/silver-searcher-git/silver-searcher-git.tar.gz | tar -xz
+RUN cd silver-searcher-git && makepkg --clean --noconfirm --noprogressbar
 
-RUN cd /ag && ./build.sh && make install
+# Install package
+USER root
+RUN pacman --upgrade --noconfirm --noprogressbar silver-searcher-git/silver-searcher-git*.pkg.tar.xz
+
+USER build
 
 WORKDIR /workdir
